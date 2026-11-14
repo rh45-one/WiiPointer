@@ -6,6 +6,17 @@ GNOME Wayland. Uses the kernel Wii driver, Python evdev and uinput; no IR bar.
 The project lives in `/home/hugo/WiiPointer`. The existing `wii-clicker` command
 and service name are retained for compatibility.
 
+## UI design prototypes
+
+Two interactive, hardware-isolated UI explorations live in [`prototypes/`](prototypes/README.md):
+**Original Wii** and **Neo Wii**. Start the local design lab with:
+
+```sh
+/usr/bin/python3 -m http.server 8765 --bind 127.0.0.1 --directory /home/hugo/WiiPointer/prototypes
+```
+
+Open <http://127.0.0.1:8765/>. These are browser-local demos, not controls for the real daemon.
+
 ## Start and stop
 
 1. Keep the Wii console off. Press **A** to reconnect the paired remote.
