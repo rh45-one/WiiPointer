@@ -1,9 +1,9 @@
-# WiiPilot
+# WiiPointer
 
 Wii Remote MotionPlus air mouse and presentation clicker for Linux, including
 GNOME Wayland. Uses the kernel Wii driver, Python evdev and uinput; no IR bar.
 
-The project lives in `/home/hugo/WiiPilot`. The existing `wii-clicker` command
+The project lives in `/home/hugo/WiiPointer`. The existing `wii-clicker` command
 and service name are retained for compatibility.
 
 ## Start and stop
@@ -69,7 +69,7 @@ files of this specific Bluetooth remote. It does not grant general input or
 uinput permissions, run the mouse as root, or enable automatic startup.
 
 ```sh
-sudo install -m 0644 /home/hugo/WiiPilot/99-wii-clicker-leds.rules /etc/udev/rules.d/99-wii-clicker-leds.rules
+sudo install -m 0644 /home/hugo/WiiPointer/99-wii-clicker-leds.rules /etc/udev/rules.d/99-wii-clicker-leds.rules
 sudo udevadm control --reload-rules
 sudo udevadm trigger --action=change --subsystem-match=leds --sysname-match='0005:057E:0306.*:blue:p[0-3]'
 sudo udevadm settle
@@ -86,7 +86,7 @@ It waits for Bluetooth remote `2C:10:C1:DF:A8:54`, identified through the kernel
 HID properties rather than unstable event numbers. No root daemon is used.
 
 ```sh
-systemctl --user enable /home/hugo/WiiPilot/wii-clicker.service
+systemctl --user enable /home/hugo/WiiPointer/wii-clicker.service
 # Set the remote down before starting:
 systemctl --user start wii-clicker
 ```
@@ -125,6 +125,6 @@ disconnect. A reboot/login and suspend/resume should be tested on the actual lap
 ## Tests
 
 ```sh
-cd /home/hugo/WiiPilot
+cd /home/hugo/WiiPointer
 /usr/bin/python3 -m unittest -v test_wii_mouse
 ```

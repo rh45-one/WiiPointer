@@ -1,5 +1,5 @@
 [Unit]
-Description=WiiPilot air mouse and presentation clicker
+Description=WiiPointer air mouse and presentation clicker
 PartOf=graphical-session.target
 
 [Service]
