@@ -13,7 +13,7 @@ export function freshSettings() {
     shortcuts: Object.fromEntries(BUTTONS.map(key => [key, ''])),
     lights: { pattern: 'player', player: 1, mask: [true, false, false, false], speed: 1.8, quiet: false },
     general: { autoStart: true, recovery: true, calibrate: true, minimized: true,
-      notifications: true, sound: false, motion: 'System', contrast: false, textSize: 100, appearance: 'System' },
+      notifications: true, sound: false, motion: 'System', contrast: false, textSize: 100, appearance: 'System', crt: true },
   };
 }
 
@@ -54,7 +54,9 @@ export function validateSettings(input) {
   for (const [section, defaults] of Object.entries(result)) {
     if (!input?.[section] || typeof input[section] !== 'object') throw new Error(`Missing ${section} settings.`);
     for (const [key, fallback] of Object.entries(defaults)) {
-      const value = input[section][key];
+      // Older design-preview exports predate the optional CRT texture.
+      const value = section === 'general' && key === 'crt' && input[section][key] === undefined
+        ? fallback : input[section][key];
       if (section === 'buttons') {
         if (!ACTIONS.includes(value)) throw new Error(`Unknown action for ${key}.`);
       } else if (section === 'shortcuts') {

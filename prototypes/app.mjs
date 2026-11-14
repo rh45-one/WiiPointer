@@ -120,6 +120,7 @@ function applyAppearance() {
   document.documentElement.dataset.appearance = dark ? 'dark' : 'light';
   document.documentElement.dataset.motion = g.motion === 'Reduced' || (g.motion === 'System' && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'reduced' : 'full';
   document.documentElement.dataset.contrast = g.contrast ? 'more' : 'normal';
+  document.documentElement.dataset.crt = g.crt ? 'on' : 'off';
   document.documentElement.style.fontSize = `${g.textSize}%`;
 }
 function status() {
@@ -140,7 +141,7 @@ function chrome(content) {
   return `<div class="lab-bar"><a href="./index.html" class="lab-brand">${icon('back')} Design lab</a><div class="design-switch" aria-label="Compare designs"><a href="./original.html#${runtime.page}" ${style === 'original' ? 'aria-current="page"' : ''}>Original Wii</a><a href="./neo.html#${runtime.page}" ${style === 'neo' ? 'aria-current="page"' : ''}>Neo Wii</a></div><span class="lab-note"><span class="demo-dot"></span> Interactive demo · no hardware connection</span></div>
   <div class="app-shell"><header class="app-header"><a class="brand" href="#home"><img src="./mark.svg" alt="" width="36" height="36"><span>Wii<span class="brand-light">Pointer</span><small>${style === 'original' ? 'WiiPointer Menu' : 'A familiar kind of freedom'}</small></span></a><div class="header-right"><span class="status-pill ${kind}"><span></span>${label}</span>${button(runtime.paused ? 'Resume demo' : 'Pause demo', 'pause', 'button quiet compact', runtime.paused ? 'play' : 'pause')}${button('Help', 'help', 'button icon-button', 'help')}</div></header>
   <div class="workspace"><nav class="main-nav" aria-label="Main navigation">${navigation.map(([page, name, glyph]) => `<a href="#${page}" ${runtime.page === page ? 'aria-current="page"' : ''}>${icon(glyph)}<span>${name}</span>${runtime.page === page ? '<i></i>' : ''}</a>`).join('')}<div class="nav-bottom"><span class="tiny-leds">${leds()}</span><span>Player ${model.settings.lights.player}<small>Demo remote · ${runtime.mode === 'low' ? '18' : '82'}% battery</small></span></div></nav><main id="main" class="main-content" data-page="${runtime.page}" tabindex="-1">${content}</main></div>
-  <footer class="app-footer"><a class="wii-menu-button" href="#home" aria-label="WiiPointer home">Wii</a><span class="footer-profile">${icon('profiles')} <span data-profile-label>${escape(model.activeProfile)}${profileModified() ? ' · Modified' : ''}</span></span><span class="footer-save">${icon('check')} ${storageAvailable ? 'Saved in this browser' : 'This tab only'} <span>· demo settings</span></span><label class="state-picker">Preview state <select id="preview-state"><option value="ready" ${runtime.mode === 'ready' ? 'selected' : ''}>Connected</option><option value="disconnected" ${runtime.mode === 'disconnected' ? 'selected' : ''}>Disconnected</option><option value="low" ${runtime.mode === 'low' ? 'selected' : ''}>Low battery</option><option value="permission" ${runtime.mode === 'permission' ? 'selected' : ''}>Permission needed</option></select></label></footer></div>`;
+  <footer class="app-footer"><a class="wii-menu-button" href="#home" aria-label="WiiPointer home">Wii</a><span class="footer-profile">${icon('profiles')} <span data-profile-label>${escape(model.activeProfile)}${profileModified() ? ' · Modified' : ''}</span></span>${style === 'original' ? `<button type="button" class="button crt-switch" data-action="crt" aria-pressed="${model.settings.general.crt}" title="Static scanlines and a soft screen-edge vignette; no flicker">CRT texture <span>${model.settings.general.crt ? 'On' : 'Off'}</span></button>` : ''}<span class="footer-save">${icon('check')} ${storageAvailable ? 'Saved in this browser' : 'This tab only'} <span>· demo settings</span></span><label class="state-picker">Preview state <select id="preview-state"><option value="ready" ${runtime.mode === 'ready' ? 'selected' : ''}>Connected</option><option value="disconnected" ${runtime.mode === 'disconnected' ? 'selected' : ''}>Disconnected</option><option value="low" ${runtime.mode === 'low' ? 'selected' : ''}>Low battery</option><option value="permission" ${runtime.mode === 'permission' ? 'selected' : ''}>Permission needed</option></select></label></footer></div>`;
 }
 
 function channelArt(page) {
@@ -151,10 +152,23 @@ function channelArt(page) {
   if (page === 'profiles') return `<div class="tile-profiles"><span>${icon('slides')}</span><span>${icon('pointer')}</span><span>${icon('target')}</span></div>`;
   return `<div class="tile-settings">${icon('settings')}<span>${icon('settings')}</span></div>`;
 }
+function clockText() {
+  const now = new Date();
+  return { time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+    date: now.toLocaleDateString([], { weekday: 'short', month: 'numeric', day: 'numeric' }), iso: now.toISOString() };
+}
+function originalHome(kind, label, hint) {
+  const clock = clockText();
+  return `<section class="classic-welcome"><h1 tabindex="-1">WiiPointer Menu</h1><div class="classic-device">${icon('bluetooth')}<span>Wii Remote Plus<small>${escape(hint)}</small></span>${icon('battery')}</div></section>
+    <div class="channel-grid" aria-label="WiiPointer channels">
+      ${navigation.slice(1).map(([page, name]) => `<a class="channel channel-${page}" href="#${page}"><div class="channel-preview">${channelArt(page)}</div><div class="channel-label"><span>${name}</span></div></a>`).join('')}
+      ${Array.from({ length: 6 }, () => '<div class="channel channel-empty" aria-hidden="true"><span class="empty-channel-mark">Wii</span></div>').join('')}
+    </div>
+    <div class="classic-bottom"><span class="status-line ${kind}"><i></i>${label}</span><div class="classic-clock"><time data-clock-time datetime="${clock.iso}">${escape(clock.time)}</time><span data-clock-date>${escape(clock.date)}</span></div>${button('Calibration', 'calibrate-page', 'button quiet', 'calibration')}</div>`;
+}
 function home() {
   const [kind, label, hint] = status();
-  const captions = { pointer: ['Find your flow', 'Sensitivity & acceleration'], buttons: ['Make it yours', 'Every button, your way'], lights: ['A little glow', 'Connected player lights'], calibration: ['Steady. Set. Go.', 'Give your gyro a fresh start'], profiles: ['Your favourite feels', 'A setup for every occasion'], settings: ['The little details', 'Startup, comfort & more'] };
-  if (style === 'original') return `<section class="classic-welcome"><div><p class="eyebrow">YOUR REMOTE. A NEW WAY TO PLAY.</p><h1 tabindex="-1">Welcome to WiiPointer.</h1></div><div class="classic-device">${icon('bluetooth')}<span>Wii Remote Plus<small>${escape(hint)}</small></span>${icon('battery')}</div></section><div class="channel-grid" aria-label="WiiPointer channels">${navigation.slice(1).map(([page, name]) => `<a class="channel channel-${page}" href="#${page}"><div class="channel-preview">${channelArt(page)}<span class="channel-preview-title">${captions[page][0]}</span></div><div class="channel-label"><span>${name}</span><small>${captions[page][1]}</small></div></a>`).join('')}</div><div class="classic-bottom"><span class="status-line ${kind}"><i></i>${label}</span><span>Pick a channel. Make yourself at home.</span>${button('Quick calibration', 'calibrate-page', 'button quiet', 'calibration')}</div>`;
+  if (style === 'original') return originalHome(kind, label, hint);
   return `<section class="neo-hero"><div class="hero-copy"><p class="eyebrow">YOUR FAVOURITE REMOTE, REIMAGINED.</p><h1 tabindex="-1">A little Wii.<br>A lot more <em>freedom.</em></h1><p>That familiar feeling, right at home on your desktop. <br>Make your next move feel just right.</p><div class="hero-actions"><a class="button primary" href="#pointer">Find your feel ${icon('arrow')}</a><a class="button quiet" href="#buttons">Make it yours</a></div><div class="hero-status ${kind}"><span class="status-orb">${icon(kind === 'ready' ? 'check' : kind === 'disconnected' ? 'bluetooth' : 'info')}</span><span><strong>${label}</strong><small>${hint}</small></span>${kind === 'disconnected' ? button('Reconnect demo', 'connect', 'button quiet compact') : ''}</div></div><div class="remote-stage"><div class="stage-halo"></div><div class="stage-ring ring-one"></div><div class="stage-ring ring-two"></div><span class="stage-chip chip-motion">${icon('pointer')} MotionPlus inside</span>${remote(false, 'hero-remote')}<span class="stage-chip chip-battery">${icon('battery')} ${runtime.mode === 'low' ? '18' : '82'}% <small>demo</small></span><span class="stage-caption">Nintendo Wii Remote Plus <span>PLAYER ${model.settings.lights.player}</span></span></div></section>
   <div class="quick-grid"><a class="quick-card" href="#pointer"><span class="quick-icon">${icon('pointer')}</span><span class="eyebrow">POINTER FEEL</span><h2>${model.settings.pointer.sensitivity} <small>px/°</small></h2><p>${model.settings.pointer.acceleration ? 'Gentle acceleration' : 'Direct, linear movement'}</p>${icon('arrow', 'quick-arrow')}</a><a class="quick-card" href="#profiles"><span class="quick-icon violet">${icon('profiles')}</span><span class="eyebrow">YOUR CURRENT PROFILE</span><h2>${escape(model.activeProfile)}</h2><p>${profileModified() ? 'A few personal touches added' : 'Ready for your next big idea'}</p>${icon('arrow', 'quick-arrow')}</a><a class="quick-card" href="#calibration"><span class="quick-icon mint">${icon('calibration')}</span><span class="eyebrow">A STEADY START</span><h2>${model.lastCalibration ? 'Feeling steady' : 'Ready when you are'}</h2><p>${model.lastCalibration ? 'Last calibrated in this demo' : 'Set down. Recalibrate. Carry on.'}</p>${icon('arrow', 'quick-arrow')}</a></div>
   <section class="small-invitation"><div>${icon('lights')}<span>A little personality, even at rest.<small>Choose the lights your remote wears while connected.</small></span></div><a href="#lights" class="text-link">Meet your player lights ${icon('arrow')}</a></section>`;
@@ -325,6 +339,7 @@ document.addEventListener('click', event => {
   const action = target.dataset.action;
   if (!action) return;
   if (action === 'pause') { runtime.paused = !runtime.paused; render(); record(runtime.paused ? 'Paused the demo pointer.' : 'Resumed the demo pointer.'); }
+  if (action === 'crt') { model.settings.general.crt = !model.settings.general.crt; save(); render(); }
   if (action === 'connect') { runtime.mode = 'ready'; render(); notify('Demo remote connected. Your real Bluetooth connection is untouched.'); }
   if (action === 'help' || action === 'activity') openDialog(action);
   if (action === 'close-dialog') dialog.close();
@@ -462,6 +477,12 @@ function bindPad() {
 }
 
 function updateFrames(now) {
+  const minute = Math.floor(Date.now() / 60000);
+  if (style === 'original' && minute !== runtime.clockMinute) {
+    runtime.clockMinute = minute;
+    const clock = clockText(); const time = document.querySelector('[data-clock-time]');
+    if (time) { time.textContent = clock.time; time.dateTime = clock.iso; document.querySelector('[data-clock-date]').textContent = clock.date; }
+  }
   let frame;
   if (runtime.calibration) {
     const elapsed = (now - runtime.calibration.start) / 1000;
