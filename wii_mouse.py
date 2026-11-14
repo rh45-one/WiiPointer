@@ -19,7 +19,8 @@ from evdev import InputDevice, UInput, ecodes as e, list_devices
 
 AXES = (e.ABS_RX, e.ABS_RY, e.ABS_RZ)
 UNITS_PER_DPS = 8192 * 9 / 440
-SLIDES = {e.KEY_RIGHT: e.KEY_PAGEDOWN, e.KEY_LEFT: e.KEY_PAGEUP}
+SLIDES = {e.KEY_RIGHT: e.KEY_PAGEDOWN, e.KEY_LEFT: e.KEY_PAGEUP,
+          e.KEY_UP: e.KEY_PAGEUP, e.KEY_DOWN: e.KEY_PAGEDOWN}
 VOLUME = {e.KEY_NEXT: e.KEY_VOLUMEUP, e.KEY_PREVIOUS: e.KEY_VOLUMEDOWN}
 REMOTE_MAC = '2c:10:c1:df:a8:54'
 HOME_THRESHOLD = 0.45  # seconds: below = show desktop, at/above = calibrate
@@ -328,7 +329,7 @@ def run(buttons, gyro, accel, bias, args, stack):
     mouse = stack.enter_context(UInput({e.EV_KEY: [e.BTN_LEFT],
         e.EV_REL: [e.REL_X, e.REL_Y]}, name="Wii Air Mouse"))
     keyboard = stack.enter_context(UInput({e.EV_KEY: list(SLIDES.values()) + list(VOLUME.values())
-        + [e.KEY_LEFTMETA, e.KEY_A]}, name="Wii Presentation Clicker"))
+        + [e.KEY_LEFTMETA, e.KEY_A, e.KEY_D]}, name="Wii Presentation Clicker"))
     buttons.grab()
     stack.callback(buttons.ungrab)
     motion = Motion(args.sensitivity, args.smoothing, args.deadzone,
