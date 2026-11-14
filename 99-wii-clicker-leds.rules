@@ -1,0 +1,5 @@
+# Read the kernel parent directly: its udev database may not exist at LED creation.
+ACTION=="add|change", SUBSYSTEM=="leds", KERNEL=="0005:057E:0306.*:blue:p[0-3]", IMPORT{program}="/usr/bin/cat /sys%p/../../uevent"
+
+# OWNER/MODE affect device nodes, not sysfs; chown only this remote's four LEDs.
+ACTION=="add|change", SUBSYSTEM=="leds", KERNEL=="0005:057E:0306.*:blue:p[0-3]", ENV{HID_UNIQ}=="2c:10:c1:df:a8:54", RUN+="/usr/bin/chown hugo /sys%p/brightness"

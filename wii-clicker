@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+script=$(readlink -f -- "$0")
+runtime=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+if [ ! -d "$runtime" ]; then
+    echo "No user runtime directory found; run from your logged-in desktop session." >&2
+    exit 1
+fi
+
+# Keep the lock for the lifetime of the daemon, including calibration.
+exec /usr/bin/flock -n -E 75 "$runtime/wii-clicker.lock" \
+    /usr/bin/python3 "$(dirname -- "$script")/wii_mouse.py" "$@"

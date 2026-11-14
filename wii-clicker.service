@@ -1,0 +1,16 @@
+[Unit]
+Description=WiiPilot air mouse and presentation clicker
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/wii-clicker --watch
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+RestartPreventExitStatus=75
+TimeoutStopSec=5
+NoNewPrivileges=yes
+UMask=0077
+
+[Install]
+WantedBy=graphical-session.target

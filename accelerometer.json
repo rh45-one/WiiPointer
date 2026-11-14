@@ -1,0 +1,11 @@
+{
+  "description": "Measured for Wii Remote 2C:10:C1:DF:A8:54; X/Z calibrated from opposing stationary poses. Y scale is estimated from X/Z.",
+  "offset": [-32.172, -34.7845, -30.857],
+  "scale": [95.313, 94.724, 94.135],
+  "poses": {
+    "face_up": [-31.527, -34.656, 63.278],
+    "face_down": [-30.952, -34.913, -124.992],
+    "buttons_left": [-127.485, -36.815, -28.355],
+    "buttons_right": [63.141, -32.503, -26.859]
+  }
+}
