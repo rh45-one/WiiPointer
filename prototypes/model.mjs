@@ -1,15 +1,18 @@
 export const STORAGE_KEY = 'wiipointer.design-lab.v1';
 export const BUTTONS = ['A', 'B', 'HOME', 'Right', 'Left', 'Up', 'Down', '+', '−', '1', '2'];
-export const ACTIONS = ['Left click', 'Right click', 'Hold to aim', 'Recalibrate', 'Next slide', 'Previous slide', 'Scroll up', 'Scroll down', 'Start presentation', 'Exit presentation', 'Black screen', 'Play / pause', 'Keyboard shortcut', 'Unassigned'];
+export const ACTIONS = ['Left click', 'Right click', 'Hold to aim', 'Recalibrate', 'Next slide',
+  'Previous slide', 'Page up', 'Page down', 'Volume up', 'Volume down', 'Show desktop',
+  'App view', 'Quick settings', 'Start presentation', 'Exit presentation', 'Black screen',
+  'Play / pause', 'Keyboard shortcut', 'Unassigned'];
 
 export function freshSettings() {
   return {
     pointer: { sensitivity: 12, vertical: 12, linked: true, smoothing: 25, deadzone: 0.3,
       acceleration: true, strength: 0.3, start: 5, end: 60, roll: true,
       invertX: true, invertY: false, activation: 'Hold' },
-    buttons: { A: 'Left click', B: 'Hold to aim', HOME: 'Recalibrate', Right: 'Next slide',
-      Left: 'Previous slide', Up: 'Scroll up', Down: 'Scroll down', '+': 'Start presentation',
-      '−': 'Exit presentation', '1': 'Black screen', '2': 'Unassigned' },
+    buttons: { A: 'Left click', B: 'Hold to aim', HOME: 'Show desktop', Right: 'Next slide',
+      Left: 'Previous slide', Up: 'Page up', Down: 'Page down', '+': 'Volume up',
+      '−': 'Volume down', '1': 'App view', '2': 'Quick settings' },
     shortcuts: Object.fromEntries(BUTTONS.map(key => [key, ''])),
     lights: { pattern: 'player', player: 1, mask: [true, false, false, false], speed: 1.8, quiet: false },
     general: { autoStart: true, recovery: true, calibrate: true, minimized: true,
@@ -27,8 +30,8 @@ export function preset(name) {
   const settings = freshSettings();
   if (name === 'Everyday') {
     Object.assign(settings.pointer, { sensitivity: 15, vertical: 15, strength: 0.35, smoothing: 20 });
-    settings.buttons.Right = 'Scroll down';
-    settings.buttons.Left = 'Scroll up';
+    settings.buttons.Right = 'Page down';
+    settings.buttons.Left = 'Page up';
   }
   if (name === 'Precision') {
     Object.assign(settings.pointer, { sensitivity: 8, vertical: 8, strength: 0.15, smoothing: 35 });

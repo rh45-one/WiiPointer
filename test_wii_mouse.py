@@ -259,7 +259,8 @@ class RecoveryTests(unittest.TestCase):
                         with ExitStack() as stack:
                             run(buttons, gyro, None, [0]*3, args, stack)
                 outputs[0].write.assert_any_call(e.EV_KEY, e.BTN_LEFT, 0)
-                for key in (e.KEY_PAGEUP, e.KEY_PAGEDOWN):
+                for key in (e.KEY_PAGEUP, e.KEY_PAGEDOWN, e.KEY_VOLUMEUP,
+                            e.KEY_VOLUMEDOWN, e.KEY_A, e.KEY_LEFTMETA):
                     outputs[1].write.assert_any_call(e.EV_KEY, key, 0)
                 for output in outputs:
                     output.__exit__.assert_called_once()

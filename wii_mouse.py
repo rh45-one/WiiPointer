@@ -20,7 +20,9 @@ from evdev import InputDevice, UInput, ecodes as e, list_devices
 AXES = (e.ABS_RX, e.ABS_RY, e.ABS_RZ)
 UNITS_PER_DPS = 8192 * 9 / 440
 SLIDES = {e.KEY_RIGHT: e.KEY_PAGEDOWN, e.KEY_LEFT: e.KEY_PAGEUP}
+VOLUME = {e.KEY_NEXT: e.KEY_VOLUMEUP, e.KEY_PREVIOUS: e.KEY_VOLUMEDOWN}
 REMOTE_MAC = '2c:10:c1:df:a8:54'
+HOME_THRESHOLD = 0.45  # seconds: below = show desktop, at/above = calibrate
 
 
 class RemoteUnavailable(RuntimeError):
@@ -325,8 +327,8 @@ def run(buttons, gyro, accel, bias, args, stack):
     orientation = Orientation(json.loads(args.accel_calibration.read_text())) if accel else None
     mouse = stack.enter_context(UInput({e.EV_KEY: [e.BTN_LEFT],
         e.EV_REL: [e.REL_X, e.REL_Y]}, name="Wii Air Mouse"))
-    keyboard = stack.enter_context(UInput({e.EV_KEY: list(SLIDES.values())},
-                                          name="Wii Presentation Clicker"))
+    keyboard = stack.enter_context(UInput({e.EV_KEY: list(SLIDES.values()) + list(VOLUME.values())
+        + [e.KEY_LEFTMETA, e.KEY_A]}, name="Wii Presentation Clicker"))
     buttons.grab()
     stack.callback(buttons.ungrab)
     motion = Motion(args.sensitivity, args.smoothing, args.deadzone,
@@ -335,6 +337,7 @@ def run(buttons, gyro, accel, bias, args, stack):
     syncing = False
     last_frame = 0
     last_tick = time.monotonic()
+    home_pressed_at = None
     end = last_tick + args.seconds if args.seconds else math.inf
     inputs = [buttons, gyro.device] + ([accel.device] if accel else [])
 
@@ -343,16 +346,22 @@ def run(buttons, gyro, accel, bias, args, stack):
         mouse.syn()
         for key in SLIDES.values():
             keyboard.write(e.EV_KEY, key, 0)
+        for key in VOLUME.values():
+            keyboard.write(e.EV_KEY, key, 0)
+        keyboard.write(e.EV_KEY, e.KEY_A, 0)
+        keyboard.write(e.EV_KEY, e.KEY_LEFTMETA, 0)
         keyboard.syn()
         held.clear()
         motion.reset()
 
-    print("Ready: B=hold to aim, A=click, Left/Right=slides. HOME: 5s to settle, then stable calibration.", flush=True)
+    print("Ready: B=hold to aim, A=click, D-pad Up/Down=page, +/-=volume. "
+          "HOME press=desktop, hold=calibrate. 1=app view, 2=quick settings.", flush=True)
     print(f"Automatic stop in {args.seconds}s." if args.seconds else "Ctrl+C to stop.", flush=True)
     try:
         while time.monotonic() < end:
             ready, _, _ = select.select(inputs, [], [], .01)
             recalibrate = False
+            home_tap = False
             for device in ready:
                 for event in device.read():
                     if accel and device is accel.device:
@@ -365,6 +374,7 @@ def run(buttons, gyro, accel, bias, args, stack):
                         if result == 'dropped':
                             last_frame = 0
                             release()
+                            home_pressed_at = None
                             if orientation:
                                 orientation.reset()
                         elif result == 'frame':
@@ -372,6 +382,7 @@ def run(buttons, gyro, accel, bias, args, stack):
                         continue
                     if event.type == e.EV_SYN and event.code == e.SYN_DROPPED:
                         release()
+                        home_pressed_at = None
                         syncing = True
                         continue
                     if syncing:
@@ -390,10 +401,42 @@ def run(buttons, gyro, accel, bias, args, stack):
                     elif event.code in SLIDES:
                         keyboard.write(e.EV_KEY, SLIDES[event.code], event.value)
                         keyboard.syn()
-                    elif event.code == e.BTN_MODE and event.value:
-                        recalibrate = True
+                    elif event.code in VOLUME:
+                        keyboard.write(e.EV_KEY, VOLUME[event.code], event.value)
+                        keyboard.syn()
+                    elif event.code == e.BTN_MODE:
+                        if event.value:
+                            home_pressed_at = time.monotonic()
+                        else:
+                            if home_pressed_at is not None and time.monotonic()-home_pressed_at < HOME_THRESHOLD:
+                                home_tap = True
+                            home_pressed_at = None
+                    elif event.code == e.BTN_1:
+                        keyboard.write(e.EV_KEY, e.KEY_LEFTMETA, event.value)
+                        keyboard.syn()
+                    elif event.code == e.BTN_2:
+                        if event.value:
+                            keyboard.write(e.EV_KEY, e.KEY_LEFTMETA, 1)
+                            keyboard.write(e.EV_KEY, e.KEY_A, 1)
+                            keyboard.syn()
+                        else:
+                            keyboard.write(e.EV_KEY, e.KEY_A, 0)
+                            keyboard.write(e.EV_KEY, e.KEY_LEFTMETA, 0)
+                            keyboard.syn()
                     elif event.code == e.BTN_EAST and not event.value:
                         motion.reset()
+            if home_tap:
+                release()
+                keyboard.write(e.EV_KEY, e.KEY_LEFTMETA, 1)
+                keyboard.write(e.EV_KEY, e.KEY_D, 1)
+                keyboard.syn()
+                keyboard.write(e.EV_KEY, e.KEY_D, 0)
+                keyboard.write(e.EV_KEY, e.KEY_LEFTMETA, 0)
+                keyboard.syn()
+                motion.reset()
+                last_frame = 0
+                last_tick = time.monotonic()
+                continue
             if recalibrate:
                 release()
                 try:
