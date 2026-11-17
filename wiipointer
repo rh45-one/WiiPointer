@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+script=$(readlink -f -- "$0")
+exec /usr/bin/python3 "$(dirname -- "$script")/wii_app.py" "$@"

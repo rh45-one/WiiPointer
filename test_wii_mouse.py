@@ -205,6 +205,36 @@ class CalibrationLightsTests(unittest.TestCase):
 
 
 class RecoveryTests(unittest.TestCase):
+    def test_home_hold_triggers_recalibration(self):
+        for release_after_hold in (False, True):
+            with self.subTest(release_after_hold=release_after_hold):
+                clock, calls = [0.], [0]
+                buttons = Mock()
+                buttons.read.side_effect = [[InputEvent(0, 0, e.EV_KEY, e.BTN_MODE, 1)],
+                                            [InputEvent(0, 0, e.EV_KEY, e.BTN_MODE, 0)]]
+                gyro = SimpleNamespace(device=Mock())
+                outputs = [MagicMock(), MagicMock()]
+                for output in outputs:
+                    output.__enter__.return_value = output
+                args = SimpleNamespace(sensitivity=12, smoothing=.025, deadzone=.3,
+                                       invert_x=True, invert_y=False, acceleration=.3, seconds=0)
+
+                def select(*_):
+                    calls[0] += 1
+                    clock[0] += .3
+                    if calls[0] == 4:
+                        raise KeyboardInterrupt
+                    available = calls[0] == 1 or (release_after_hold and calls[0] == 3)
+                    return ([buttons] if available else []), [], []
+
+                with patch('wii_mouse.UInput', side_effect=outputs), \
+                     patch('wii_mouse.time.monotonic', side_effect=lambda: clock[0]), \
+                     patch('wii_mouse.select.select', side_effect=select), \
+                     patch('wii_mouse.calibrate', return_value=[1, 2, 3]) as calibrate:
+                    with self.assertRaises(KeyboardInterrupt), ExitStack() as stack:
+                        run(buttons, gyro, None, [0]*3, args, stack)
+                calibrate.assert_called_once_with(gyro, settling=5)
+
     def test_only_the_configured_remote_matches(self):
         with tempfile.TemporaryDirectory() as directory:
             parent = Path(directory)
@@ -230,7 +260,7 @@ class RecoveryTests(unittest.TestCase):
                 watch(Mock())
         sleep.assert_not_called()
 
-    def test_reconnected_session_always_calibrates_with_settling_delay(self):
+    def test_initial_session_calibrates_with_settling_delay(self):
         args = SimpleNamespace(roll_compensation=True, watch=True,
                                bias_file=None, calibrate_only=None)
         buttons, device, gyro = Mock(), Mock(), Mock()

@@ -1,141 +1,162 @@
+<p align="center"><img src="wiipointer.svg" width="80" alt="WiiPointer icon"></p>
+
 # WiiPointer
 
-Wii Remote MotionPlus air mouse and presentation clicker for Linux, including
-GNOME Wayland. Uses the kernel Wii driver, Python evdev and uinput; no IR bar.
+Use a Wii Remote as an air mouse and presentation clicker on Linux. WiiPointer
+runs as a desktop app with a GNOME tray menu, editable controls, and a Wii Menu-inspired
+interface. It works with GNOME Wayland and needs a MotionPlus sensor, not a sensor bar.
 
-The project lives in `/home/hugo/WiiPointer`. The existing `wii-clicker` command
-and service name are retained for compatibility.
+| Wii Light | Midnight Wii |
+| --- | --- |
+| ![WiiPointer in light mode](docs/screenshots/light.png) | ![WiiPointer in dark mode](docs/screenshots/dark.png) |
 
-## UI design prototypes
+## What it does
 
-Two interactive, hardware-isolated UI explorations live in [`prototypes/`](prototypes/README.md):
-**Original Wii** and **Neo Wii**. Start the local design lab with:
+- Hold B to move the pointer. Use A to click or drag, and the D-pad to change slides.
+- Adjust sensitivity, smoothing, acceleration, deadzone, axis inversion, and roll
+  compensation while connected. Changes apply live and keep your calibration.
+- Remap buttons to mouse clicks, slide controls, volume, desktop shortcuts, or aiming.
+- Use the connection helper to check Bluetooth, scan, select a remote, and reconnect.
+- Close the window or choose **Hide to tray** to keep input available. Quit stops
+  the backend and releases its virtual input devices.
+
+The backend runs only while the app is open, including when it is in the tray.
+Opening another instance brings the existing window back. There is no login autostart.
+
+## Install
+
+WiiPointer currently targets Linux laptops with GNOME, BlueZ, the kernel Wii driver,
+and Python 3.10 or later. The installer creates a launcher pointing to your checkout;
+keep the checkout in place after installing.
+
+On Debian or Ubuntu:
 
 ```sh
-/usr/bin/python3 -m http.server 8765 --bind 127.0.0.1 --directory /home/hugo/WiiPointer/prototypes
+sudo apt install python3-gi python3-gi-cairo python3-evdev \
+  gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 bluez
+
+git clone https://github.com/rh45-one/WiiPointer.git
+cd WiiPointer
+/usr/bin/python3 install-desktop.py
 ```
 
-Open <http://127.0.0.1:8765/>. These are browser-local demos, not controls for the real daemon.
+Launch **WiiPointer** from Activities, or run:
 
-## Start and stop
+```sh
+~/.local/bin/wiipointer
+```
 
-1. Keep the Wii console off. Press **A** to reconnect the paired remote.
-2. Set the remote on a stable table.
-3. Run `wii-clicker` in a terminal. Leave it still during calibration (about six seconds).
-4. Pick it up when calibration finishes. **Ctrl+C** stops the daemon and releases input.
+GNOME needs the [AppIndicator and KStatusNotifierItem Support extension](https://extensions.gnome.org/extension/615/appindicator-support/)
+to show tray icons. If no tray host is available, WiiPointer keeps the window open
+when you try to hide it.
 
-When the automatic service below is enabled, you do not need the terminal command:
-press A to reconnect, set the remote down, and wait for the calibration lights.
+Input access needs a one-time setup on some systems. Follow the
+[hardware and permissions guide](docs/hardware.md) if the remote connects over
+Bluetooth but input never becomes ready. Run the app as your normal desktop user,
+never with `sudo`.
 
-The command is a symlink in `~/.local/bin` pointing into this directory.
-Don't run it with sudo. A runtime lock prevents duplicate launcher instances;
-exit code 75 means another launcher instance owns the lock. Direct invocation of
-`wii_mouse.py` bypasses this lock.
+Upgrading from the old CLI service? The installer stops and disables
+`wii-clicker.service` so it cannot compete with the app. Your calibration files
+and the source service unit stay in the checkout.
 
-## Controls
+## Connect and calibrate
+
+1. Keep the Wii console off. Open the **Wii Remote** channel for the connection helper.
+2. If already paired, press A on the remote. For a new pairing, hold 1 + 2 or press
+   the red SYNC button, scan, and finish pairing in GNOME Bluetooth settings.
+3. Choose your remote in the helper and click **Use this remote**. You can also
+   enter its Bluetooth address directly. Choose **Connect** while the remote is awake.
+4. Put it on a stable table for the initial calibration. Wait for **Ready to point**.
+
+The initial measurement needs a still five-second window after a five-second
+settling delay. Movement extends the measurement; an unsuccessful initial attempt
+retries instead of accepting bad readings.
+
+After the initial calibration, pointer changes, button mappings, pause/resume,
+and reconnects reuse the same bias for that app session. To recalibrate, put the
+remote down and **hold HOME**. HOME long press is reserved even when you remap its
+tap action. A rejected manual measurement keeps the previous bias. Quitting and
+reopening the app starts a fresh session; choosing a different remote also needs
+its own initial measurement.
+
+The included accelerometer calibration belongs to the development remote. Selecting
+a different remote disables roll compensation until you measure its accelerometer.
+See the [hardware guide](docs/hardware.md#roll-compensation) before turning it back on.
+
+## Default buttons
 
 | Button | Action |
 | --- | --- |
-| B (hold) | Gyro aiming; release stops immediately |
-| A | Left mouse button, including dragging |
-| D-pad Right / Left | Page Down / Page Up for slides |
-| HOME | Five-second settling delay, then wait for a stable five-second bias measurement |
+| B, held | Aim; releasing stops pointer movement |
+| A | Left click; hold to drag |
+| D-pad up / left | Previous slide (Page Up) |
+| D-pad down / right | Next slide (Page Down) |
+| + / − | Volume up / down |
+| HOME, tap | Show desktop (Super+D) |
+| HOME, hold | Recalibrate gyro bias |
+| 1 | GNOME Activities overview |
+| 2 | GNOME quick settings (Super+A) |
 
-During settling, the player lights count down from four to one in four equal stages
-(five seconds for HOME, one second at startup). During measurement,
-one light chases back and forth at 100 ms per step. The lights return to their previous
-state afterward, including on rejection or interruption.
-The measurement uses a rolling five-second window, retaining the same movement
-checks. If the remote wobbles, the chase continues until a stable window is found;
-calibration fails after 30 seconds total rather than accepting noisy readings.
-If calibration fails, HOME retains the previous bias; startup instead exits.
-The light pattern ending alone doesn't distinguish success from failure: check the terminal.
+Open **Button mappings** to change these. The editor keeps at least one aim action
+and one left-click action. HOME tap is editable; HOME long press always recalibrates.
+**Button guide** shows your current mappings. GNOME shortcuts depend on your desktop
+keybindings.
 
-## Options
+## Settings and tray controls
 
-```sh
-wii-clicker --no-roll-compensation
-wii-clicker --acceleration 0
-wii-clicker --sensitivity 10 --smoothing 0.035
-wii-clicker --help
-```
+**Pointer** contains the motion settings. Defaults are 12 pixels per nominal degree,
+25 ms smoothing, a 0.3 degrees/second soft deadzone, gentle acceleration, horizontal
+inversion, and roll compensation. Set acceleration to zero for linear response.
+GNOME may apply additional pointer acceleration.
 
-Defaults: sensitivity 12 pixels/nominal degree, smoothing 25 ms, soft deadzone
-0.3 nominal degrees/second, gentle speed-based acceleration, horizontal inversion,
-and roll compensation. The default acceleration gain ranges from 0.85 to 1.45,
-transitioning smoothly between 5 and 60 nominal degrees/second. GNOME may also
-apply pointer acceleration. Options currently require restarting the daemon.
+Settings save to `~/.config/wiipointer/settings.json`, respecting `XDG_CONFIG_HOME`.
+The app sends updates over a private pipe. It does not restart the process, reconnect
+the remote, or run a calibration when you change a pointer setting. Changes release
+held outputs; press your aim or click button again afterward.
 
-The accelerometer calibration in `accelerometer.json` was measured for
-`2C:10:C1:DF:A8:54`; do not assume it fits another remote. X/Z offsets and scales
-use four opposing poses; the longitudinal Y scale is estimated. Gravity and gyro
-tracking compensate for roll; the accelerometer does not drive the cursor.
-Strong linear acceleration can still disturb the estimate. Aiming pauses near
-straight up/down, where roll is ambiguous. HOME corrects gyro bias, not absolute heading.
+The tray menu has pause/resume, pointer settings, button mappings, the connection
+helper, a dark-appearance toggle, and quit. **Appearance** also has a system-following
+option. **Connection details** shows live backend messages and input errors.
 
-## Persistent LED access (one-time administrator setup)
+## Terminal use
 
-The included udev rule grants user `hugo` access only to the four LED brightness
-files of this specific Bluetooth remote. It does not grant general input or
-uinput permissions, run the mouse as root, or enable automatic startup.
+Quit the desktop app first. The CLI and desktop backend share a lock to prevent
+duplicate input. Existing `wii-clicker` commands still work:
 
 ```sh
-sudo install -m 0644 /home/hugo/WiiPointer/99-wii-clicker-leds.rules /etc/udev/rules.d/99-wii-clicker-leds.rules
-sudo udevadm control --reload-rules
-sudo udevadm trigger --action=change --subsystem-match=leds --sysname-match='0005:057E:0306.*:blue:p[0-3]'
-sudo udevadm settle
+~/.local/bin/wii-clicker --watch --remote-mac AA:BB:CC:DD:EE:FF
+~/.local/bin/wii-clicker --sensitivity 10 --smoothing 0.035
+~/.local/bin/wii-clicker --no-roll-compensation --acceleration 0
+~/.local/bin/wii-clicker --help
 ```
 
-The rule reads the HID parent's kernel properties directly, without depending on
-the parent event having populated the udev database before the LEDs appear.
-Without LED access the daemon still works, but logs a warning and skips the animation.
-
-## Automatic launch and recovery
-
-The user service starts with the GNOME graphical session and stops on logout.
-It waits for Bluetooth remote `2C:10:C1:DF:A8:54`, identified through the kernel's
-HID properties rather than unstable event numbers. No root daemon is used.
-
-```sh
-systemctl --user enable /home/hugo/WiiPointer/wii-clicker.service
-# Set the remote down before starting:
-systemctl --user start wii-clicker
-```
-
-Each connection gets a fresh gyro calibration with a five-second settling countdown.
-If calibration fails, it retries after two seconds; keep the remote stationary.
-On disconnect, mouse buttons and slide keys are released, virtual devices are removed,
-and the process waits for the remote again. It checks for available input devices
-every two seconds while waiting. Unexpected process failures are restarted by systemd.
-It does not re-pair devices or wake a powered-off remote: press A to reconnect.
-
-```sh
-systemctl --user status wii-clicker --no-pager
-journalctl --user -u wii-clicker -n 40 --no-pager
-systemctl --user stop wii-clicker
-systemctl --user restart wii-clicker
-# Disable automatic launch and stop it:
-systemctl --user disable --now wii-clicker
-```
-
-While the service is running it owns the launcher lock, even when disconnected.
-Stop it before running `wii-clicker` manually. For now, change service options using
-`systemctl --user edit wii-clicker`, then restart with the remote on the table:
-
-```ini
-[Service]
-ExecStart=
-ExecStart=%h/.local/bin/wii-clicker --watch --no-roll-compensation
-```
-
-`wii-clicker --watch` also provides connection recovery without installing the service;
-Ctrl+C stops that foreground watcher. Watch mode does not accept cached bias files,
-calibration-only mode, or a timed run. Manual mode without `--watch` still exits on
-disconnect. A reboot/login and suspend/resume should be tested on the actual laptop.
+CLI options apply at launch; the desktop app provides live settings and mapping edits.
+Ctrl+C stops the CLI. Do not enable the legacy service alongside the desktop app.
 
 ## Tests
 
 ```sh
-cd /home/hugo/WiiPointer
-/usr/bin/python3 -m unittest -v test_wii_mouse
+sudo apt install xvfb xauth
+
+/usr/bin/python3 -m unittest -v test_wii_mouse test_desktop_backend \
+  test_live_controls test_bluetooth_helper
+GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 -m unittest -v test_wii_app
+node --test prototypes/model.test.mjs
 ```
+
+The tests cover motion math, calibration timing, live settings, button outputs,
+reconnect bias reuse, process cleanup, BlueZ requests, and the native UI. They run
+without a controller. Set `WII_SCREENSHOT_DIR` when running UI tests to capture
+both appearances. The archived browser prototypes have an additional Playwright
+suite described in [prototypes/README.md](prototypes/README.md).
+
+## Project notes
+
+- [Hardware setup, LED access, and troubleshooting](docs/hardware.md)
+- [Code layout and development](docs/development.md)
+- [Archived UI explorations](prototypes/README.md)
+
+This is an independent project, not a Nintendo product. The interface illustrations
+are original. Real-controller checks, including aiming, LEDs, Bluetooth pairing,
+and suspend/resume, are still needed before treating a particular laptop/remote
+combination as tested.
